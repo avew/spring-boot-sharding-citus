@@ -1,0 +1,5 @@
+### GET all orders
+GET http://localhost:8181/orders
+Accept: application/json
+
+

@@ -1,0 +1,61 @@
+version: '3'
+services:
+  coordinator:
+    image: citusdata/citus:12.1
+    platform: linux/amd64
+    container_name: citus_coordinator
+    hostname: coordinator
+    ports: ['5433:5432']
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo
+    volumes:
+      - citus_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    image: citusdata/citus:12.1
+    platform: linux/amd64
+    container_name: citus_worker
+    hostname: worker
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo
+    volumes:
+      - worker1_data:/var/lib/postgresql/data
+    depends_on:
+      - coordinator
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  citus-init:
+    image: citusdata/citus:12.1
+    platform: linux/amd64
+    container_name: citus_init
+    volumes:
+      - ./init-citus-cluster.sh:/init-citus-cluster.sh
+    entrypoint: ["/bin/bash", "/init-citus-cluster.sh"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+
+volumes:
+  citus_data:
+    driver: local
+  worker1_data:
+    driver: local
